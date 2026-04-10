@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Marketplace</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1b23;
+      --surface-hover: #22232e;
+      --border: #2a2b36;
+      --text: #e4e4e7;
+      --text-dim: #9ca3af;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .credits-badge {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .user-badge {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+    .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; }
+
+    /* Auth */
+    .auth-container {
+      max-width: 400px;
+      margin: 80px auto;
+      padding: 2rem;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+
+    .auth-card h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.3rem;
+    }
+
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 0.6rem;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg);
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+    }
+
+    .auth-tab.active { background: var(--accent); color: white; }
+
+    .form-group { margin-bottom: 1rem; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 0.3rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.7rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .form-group input:focus { border-color: var(--accent); }
+    .auth-btn { width: 100%; padding: 0.8rem; margin-top: 0.5rem; }
+    .auth-error { color: var(--red); font-size: 0.8rem; margin-top: 0.5rem; text-align: center; }
+    .auth-info { text-align: center; color: var(--text-dim); font-size: 0.8rem; margin-top: 1rem; }
+
+    /* Main */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .section-subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1.2rem; }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 600px) { .agent-grid { grid-template-columns: 1fr; } }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem;
+      transition: border-color 0.2s;
+    }
+
+    .agent-card:hover { border-color: var(--accent); }
+
+    .agent-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .agent-card-name { font-weight: 700; font-size: 1rem; }
+
+    .agent-card-id {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      font-family: monospace;
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .agent-card-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 0.6rem;
+      line-height: 1.4;
+    }
+
+    .agent-card-tags {
+      display: flex;
+      gap: 0.3rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+
+    .tag {
+      font-size: 0.65rem;
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--accent-hover);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .agent-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.8rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .price { font-size: 0.9rem; font-weight: 600; }
+    .price-label { font-size: 0.7rem; color: var(--text-dim); }
+
+    .owned-badge {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .api-section {
+      margin-top: 0.8rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .api-key-label { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.3rem; }
+
+    .api-key-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .api-key-value {
+      flex: 1;
+      font-family: monospace;
+      font-size: 0.75rem;
+      background: var(--bg);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .copy-btn {
+      background: var(--surface-hover);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+
+    .copy-btn:hover { border-color: var(--accent); }
+
+    .code-toggle {
+      font-size: 0.75rem;
+      color: var(--accent);
+      cursor: pointer;
+      margin-top: 0.3rem;
+    }
+
+    .code-block {
+      display: none;
+      margin-top: 0.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem;
+      font-family: monospace;
+      font-size: 0.7rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--text-dim);
+    }
+
+    .code-block.show { display: block; }
+    .query-cost { font-size: 0.75rem; color: var(--orange); }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 0.8rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success { background: var(--green); color: white; }
+    .toast.error { background: var(--red); color: white; }
+
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.2rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .nav-tab {
+      padding: 0.7rem 1.2rem;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .nav-tab:hover { color: var(--text); }
+
+    .nav-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* Data Tables */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .data-table th {
+      padding: 0.6rem 0.5rem;
+      color: var(--text-dim);
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .data-table td {
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table tr:hover { background: var(--surface-hover); }
+
+    .status-active { color: var(--green); font-weight: 600; }
+    .status-revoked { color: var(--red); font-weight: 600; }
+    .status-blocked { color: var(--red); }
+    .status-ok { color: var(--green); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header { flex-wrap: wrap; gap: 0.5rem; padding: 0.6rem 1rem; }
+      header h1 { font-size: 1rem; }
+      .header-right { gap: 0.5rem; }
+      .credits-badge { font-size: 0.75rem; padding: 3px 8px; }
+      .user-badge { font-size: 0.75rem; }
+      .main { padding: 1rem; }
+      .agent-grid { grid-template-columns: 1fr; }
+      .nav-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .nav-tab { padding: 0.6rem 0.8rem; font-size: 0.8rem; white-space: nowrap; }
+      .data-table { font-size: 0.7rem; }
+      .data-table th, .data-table td { padding: 0.4rem 0.3rem; }
+    }
+
+    @media (max-width: 480px) {
+      header h1 span { display: none; }
+      .btn-sm { padding: 0.25rem 0.6rem; font-size: 0.7rem; }
+      .agent-card { padding: 1rem; }
+      .nav-tab { padding: 0.5rem 0.6rem; font-size: 0.75rem; }
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Screen -->
+  <div id="auth-screen">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2><span style="color: var(--accent);">&#9670;</span> Agent Marketplace</h2>
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+          <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+        <form id="auth-form" onsubmit="handleAuth(event)">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="auth-username" required minlength="3" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="auth-password" required minlength="6" autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary auth-btn" type="submit" id="auth-submit">Login</button>
+          <div class="auth-error" id="auth-error"></div>
+        </form>
+        <div class="auth-info">100 free credits on signup</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app-screen" class="hidden">
+    <header>
+      <h1><span>&#9670;</span> Agent Marketplace</h1>
+      <div class="header-right">
+        <span class="credits-badge" id="credits-display">Credits: 0</span>
+        <span class="user-badge" id="user-display"></span>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- Navigation Tabs -->
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tab-agents" onclick="switchSection('agents')">Browse Agents</button>
+        <button class="nav-tab" id="tab-keys" onclick="switchSection('keys')">My API Keys</button>
+        <button class="nav-tab" id="tab-usage" onclick="switchSection('usage')">Usage History</button>
+      </div>
+
+      <!-- Agents Section -->
+      <div id="section-agents">
+        <p class="section-subtitle">Purchase an agent to get an API key for programmatic access from your own code</p>
+        <div class="agent-grid" id="agent-grid"></div>
+      </div>
+
+      <!-- My API Keys Section -->
+      <div id="section-keys" class="hidden">
+        <p class="section-subtitle">All purchased agents — active and revoked keys</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Agent</th>
+                <th>API Key</th>
+                <th>Status</th>
+                <th>Purchase Price</th>
+                <th>Per Query</th>
+                <th>Purchased At</th>
+              </tr>
+            </thead>
+            <tbody id="keys-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Usage History Section -->
+      <div id="section-usage" class="hidden">
+        <p class="section-subtitle">Monitor API key usage — check for unfamiliar IPs</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Agent</th>
+                <th>Question</th>
+                <th>Credits</th>
+                <th>IP Address</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="usage-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authMode = 'login';
+    let jwt = sessionStorage.getItem('jwt');
+    let currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+    let purchasedAgents = {};
+    let pricing = {};
+
+    if (jwt && currentUser) showApp();
+
+    function switchTab(mode) {
+      authMode = mode;
+      document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+      document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+      document.getElementById('auth-submit').textContent = mode === 'login' ? 'Login' : 'Sign Up';
+      document.getElementById('auth-error').textContent = '';
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errorEl = document.getElementById('auth-error');
+      errorEl.textContent = '';
+
+      try {
+        const res = await fetch(authMode === 'login' ? '/auth/login' : '/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorEl.textContent = data.detail || 'Authentication failed';
+          return;
+        }
+
+        jwt = data.token;
+        currentUser = data.user;
+        sessionStorage.setItem('jwt', jwt);
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showApp();
+      } catch {
+        errorEl.textContent = 'Connection error';
+      }
+    }
+
+    function logout() {
+      jwt = null;
+      currentUser = null;
+      purchasedAgents = {};
+      sessionStorage.clear();
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('auth-username').value = '';
+      document.getElementById('auth-password').value = '';
+    }
+
+    async function showApp() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      updateHeader();
+      await loadPricing();
+      await loadMyAgents();
+      await loadAgents();
+    }
+
+    function updateHeader() {
+      document.getElementById('credits-display').textContent = 'Credits: ' + currentUser.credits;
+      document.getElementById('user-display').textContent = currentUser.username;
+    }
+
+    async function loadPricing() {
+      try {
+        const res = await fetch('/agents/pricing/all');
+        if (res.ok) pricing = await res.json();
+      } catch {}
+    }
+
+    async function loadMyAgents() {
+      try {
+        const res = await fetch('/me/agents', { headers: { 'Authorization': 'Bearer ' + jwt } });
+        if (res.ok) {
+          const data = await res.json();
+          purchasedAgents = {};
+          for (const a of data.agents) purchasedAgents[a.agent_id] = a;
+          currentUser.credits = data.credits;
+          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+          updateHeader();
+        } else if (res.status === 401) {
+          toast('Session expired', 'error');
+          logout();
+        }
+      } catch {}
+    }
+
+    async function loadAgents() {
+      try {
+        const res = await fetch('/agents');
+        if (!res.ok) return;
+        const agents = await res.json();
+        const grid = document.getElementById('agent-grid');
+        grid.innerHTML = '';
+
+        for (const agent of agents) {
+          const card = agent.card_json || {};
+          const skills = card.skills || [];
+          const tags = [];
+          skills.forEach(s => tags.push(...(s.tags || [])));
+          const uniqueTags = [...new Set(tags)].slice(0, 5);
+
+          const purchased = purchasedAgents[agent.agent_id];
+          const purchasePrice = (pricing.purchase_prices || {})[agent.agent_id] || 10;
+          const queryCost = (pricing.query_costs || {})[agent.agent_id] || 1;
+          const codeId = 'code-' + agent.agent_id;
+          const keyId = 'key-' + agent.agent_id;
+
+          const div = document.createElement('div');
+          div.className = 'agent-card';
+
+          let footerHtml;
+          if (purchased && purchased.api_key) {
+            const apiKey = purchased.api_key;
+            const maskedKey = apiKey.substring(0, 8) + '••••••••••••••••••••';
+            footerHtml = `
+              <div class="agent-card-footer">
+                <span class="owned-badge">OWNED</span>
+                <span class="query-cost">${queryCost} credit/query</span>
+              </div>
+              <div class="api-section">
+                <div class="api-key-label">API Key</div>
+                <div class="api-key-row">
+                  <span class="api-key-value" id="${keyId}" data-key="${esc(apiKey)}" data-masked="${esc(maskedKey)}">${esc(maskedKey)}</span>
+                  <button class="copy-btn" onclick="toggleKeyVisibility('${agent.agent_id}')">Show</button>
+                  <button class="copy-btn" onclick="copyKey('${agent.agent_id}')">Copy</button>
+                </div>
+                <div class="code-toggle" onclick="toggleCode('${agent.agent_id}')">Show code example</div>
+                <div class="code-block" id="${codeId}">curl -X POST ${location.origin}/api/v1/chat \\
+  -H "x-api-key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"message": "Your question here"}'</div>
+                <button class="btn btn-danger btn-sm" style="margin-top:0.5rem" onclick="revokeKey('${purchased.key_id}')">Revoke Key</button>
+              </div>`;
+          } else {
+            footerHtml = `
+              <div class="agent-card-footer">
+                <div>
+                  <span class="price">${purchasePrice} credits</span>
+                  <br><span class="price-label">${queryCost} credit/query after</span>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="buyAgent('${agent.agent_id}')">Buy Agent</button>
+              </div>`;
+          }
+
+          div.innerHTML = `
+            <div class="agent-card-header">
+              <span class="agent-card-name">${esc(agent.name)}</span>
+              <span class="agent-card-id">${esc(agent.agent_id)}</span>
+            </div>
+            <div class="agent-card-desc">${esc(agent.description || '')}</div>
+            <div class="agent-card-tags">
+              ${uniqueTags.map(t => '<span class="tag">' + esc(t) + '</span>').join('')}
+            </div>
+            ${footerHtml}`;
+
+          grid.appendChild(div);
+        }
+      } catch (err) {
+        console.error('Failed to load agents:', err);
+      }
+    }
+
+    async function buyAgent(agentId) {
+      try {
+        const res = await fetch('/agents/' + agentId + '/buy', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + jwt },
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          toast(data.detail || 'Purchase failed', 'error');
+          return;
+        }
+
+        toast('Purchased! Copy your API key from the card.', 'success');
+        await loadMyAgents();
+        await loadAgents();
+      } catch {
+        toast('Connection error', 'error');
+      }
+    }
+
+    function copyKey(agentId) {
+      const el = document.getElementById('key-' + agentId);
+      const realKey = el.getAttribute('data-key');
+      navigator.clipboard.writeText(realKey).then(() => toast('API key copied!', 'success'));
+    }
+
+    function toggleKeyVisibility(agentId) {
+      const el = document.getElementById('key-' + agentId);
+      const btn = el.parentElement.querySelector('.copy-btn');
+      const isHidden = el.textContent.includes('••');
+      if (isHidden) {
+        el.textContent = el.getAttribute('data-key');
+        btn.textContent = 'Hide';
+      } else {
+        el.textContent = el.getAttribute('data-masked');
+        btn.textContent = 'Show';
+      }
+    }
+
+    function toggleCode(agentId) {
+      document.getElementById('code-' + agentId).classList.toggle('show');
+    }
+
+    async function revokeKey(keyId) {
+      if (!confirm('Revoke this API key?')) return;
+      try {
+        const res = await fetch('/me/api-key/' + keyId, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + jwt },
+        });
+        if (res.ok) {
+          toast('API key revoked', 'success');
+          await loadMyAgents();
+          await loadAgents();
+        }
+      } catch { toast('Connection error', 'error'); }
+    }
+
+    function switchSection(section) {
+      document.getElementById('section-agents').classList.add('hidden');
+      document.getElementById('section-keys').classList.add('hidden');
+      document.getElementById('section-usage').classList.add('hidden');
+      document.getElementById('tab-agents').classList.remove('active');
+      document.getElementById('tab-keys').classList.remove('active');
+      document.getElementById('tab-usage').classList.remove('active');
+
+      document.getElementById('section-' + section).classList.remove('hidden');
+      document.getElementById('tab-' + section).classList.add('active');
+
+      if (section === 'keys') loadKeys();
+      if (section === 'usage') loadUsage();
+    }
+
+    async function loadKeys() {
+      try {
+        const res = await fetch('/me/keys', { headers: { 'Authorization': 'Bearer ' + jwt } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('keys-tbody');
+        tbody.innerHTML = '';
+
+        if (data.keys.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-dim);">No agents purchased yet. Go to Browse Agents to buy one.</td></tr>';
+        } else {
+          for (const key of data.keys) {
+            const tr = document.createElement('tr');
+            const statusClass = key.status === 'active' ? 'status-active' : 'status-revoked';
+            const statusLabel = key.status === 'active' ? 'ACTIVE' : 'REVOKED';
+            const maskedKey = key.status === 'active' ? key.api_key.substring(0, 12) + '••••••••' : key.api_key;
+            tr.innerHTML = `
+              <td style="font-weight: 600;">${esc(key.agent_id)}</td>
+              <td style="font-family: monospace; font-size: 0.75rem;">${esc(maskedKey)}</td>
+              <td><span class="${statusClass}">${statusLabel}</span></td>
+              <td>${key.purchase_price} credits</td>
+              <td>${key.query_cost} credit/query</td>
+              <td style="white-space: nowrap;">${formatIST(key.created_at)}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      } catch { toast('Failed to load keys', 'error'); }
+    }
+
+    async function loadUsage() {
+      try {
+        const res = await fetch('/me/usage', { headers: { 'Authorization': 'Bearer ' + jwt } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('usage-tbody');
+        tbody.innerHTML = '';
+
+        if (data.usage.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="padding: 1.5rem; text-align: center; color: var(--text-dim);">No usage yet. Use your API key to query an agent.</td></tr>';
+        } else {
+          for (const log of data.usage) {
+            const tr = document.createElement('tr');
+            const blocked = log.blocked ? '<span class="status-blocked">BLOCKED</span>' : '<span class="status-ok">OK</span>';
+            const reason = log.block_reason ? ' (' + esc(log.block_reason) + ')' : '';
+            tr.innerHTML = `
+              <td style="white-space: nowrap;">${formatIST(log.timestamp)}</td>
+              <td>${esc(log.agent_id || '-')}</td>
+              <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${esc(log.question || '')}</td>
+              <td>${log.credits_spent}</td>
+              <td style="font-family: monospace; font-size: 0.75rem;">${esc(log.ip_address || '-')}</td>
+              <td>${blocked}${reason}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      } catch { toast('Failed to load usage', 'error'); }
+    }
+
+    function formatIST(utcStr) {
+      if (!utcStr) return '-';
+      const d = new Date(utcStr + 'Z');
+      return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+
+    function esc(text) {
+      const d = document.createElement('div');
+      d.textContent = text;
+      return d.innerHTML;
+    }
+
+    function toast(msg, type) {
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

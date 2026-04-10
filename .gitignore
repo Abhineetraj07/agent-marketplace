@@ -1,0 +1,29 @@
+# Secrets (auto-generated)
+.jwt_secret
+.marketplace_secret
+
+# Databases
+marketplace.db
+imdb.db
+Chinook.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Pentest scripts (not for production)
+pentest.py
+pentest_v2.py
+
+# Logs
+*.log
+a2a_token_log.json
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

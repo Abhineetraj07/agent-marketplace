@@ -1,0 +1,28 @@
+question_id,question,direct_latency,a2a_latency,latency_overhead,direct_accurate,a2a_accurate,direct_prompt_tokens,a2a_prompt_tokens,direct_completion_tokens,a2a_completion_tokens,direct_tool_calls,a2a_tool_calls
+1,Top 5 movies by IMDb rating,43.2,47.24,+9.4%,True,True,3562,3562,278,278,3,3
+2,Top 5 movies by number of votes,56.79,57.51,+1.3%,True,True,3646,3646,387,387,3,3
+3,How many movies are in the dataset?,22.55,23.57,+4.5%,True,True,3461,3461,127,127,3,3
+4,Average IMDb rating of all movies,21.21,19.9,-6.2%,True,True,3456,3456,123,123,3,3
+5,Movies released after 2015,20.36,22.95,+12.7%,False,False,2418,2418,132,132,2,2
+6,Top 5 directors by number of movies,51.39,45.67,-11.1%,True,True,4541,4541,336,336,4,4
+7,Highest rated movie released before 2000,20.86,19.9,-4.6%,False,False,2424,2424,139,139,2,2
+8,Movies with IMDb rating above 9,33.49,29.96,-10.5%,True,True,3530,3530,228,228,3,3
+9,Average IMDb rating per certificate,18.17,16.12,-11.3%,False,False,2409,2409,109,109,2,2
+10,Top 3 most common genres,134.7,153.78,+14.2%,False,False,10215,10215,1089,1089,7,7
+11,Top 5 movies by Meta score,18.32,19.69,+7.5%,False,False,2415,2415,131,131,2,2
+12,Average IMDb rating by release decade,66.4,66.98,+0.9%,False,False,3817,3817,506,506,3,3
+13,Top 5 movies with highest gross revenue,58.5,50.75,-13.2%,True,True,3631,3631,360,360,3,3
+14,Number of movies released each year,69.8,62.8,-10.0%,False,False,3735,3735,489,489,3,3
+15,Top 5 actors (Star1) by number of movies,72.94,82.8,+13.5%,True,True,5842,5842,590,590,5,5
+16,"Movies with more than 1,000,000 votes",35.06,34.93,-0.4%,True,True,1631,1631,271,271,1,1
+17,Average IMDb rating for each genre,88.48,81.41,-8.0%,False,False,3985,3985,592,592,3,3
+18,Highest rated movie for each certificate,93.8,94.74,+1.0%,True,True,5236,5236,718,718,4,4
+19,Top 5 directors by average IMDb rating with at least 3 movies,53.43,46.21,-13.5%,True,True,3717,3717,370,370,3,3
+20,Oldest movie in the dataset,23.48,20.56,-12.4%,False,False,3472,3472,142,142,3,3
+,,,,,,,,,,,,
+,Avg Latency (s),50.15,49.87,-0.6%,,,,,,,,
+,Accuracy,11/20,11/20,,,,,,,,,
+,Total Prompt Tokens,77143,77143,+0.0%,,,,,,,,
+,Total Completion Tokens,7117,7117,+0.0%,,,,,,,,
+,Avg Tool Calls,3.1,3.1,,,,,,,,,
+,Model,qwen2.5:7b,qwen2.5:7b,,,,,,,,,
