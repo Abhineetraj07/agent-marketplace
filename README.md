@@ -22,8 +22,6 @@
   with every request passing through a <b>9-step security pipeline</b>.
 </p>
 
-> 🏆 Built for a hackathon where opposing teams actively tried to break the system — security is production-grade, not demo-level.
-
 ---
 
 ## 🏗️ Architecture
