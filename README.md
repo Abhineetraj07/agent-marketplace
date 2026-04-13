@@ -5,6 +5,7 @@
   <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/LangGraph-Agents-2CA5E0?style=for-the-badge" />
   <img src="https://img.shields.io/badge/A2A-Protocol-6750A4?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/MCP-Server-FF6B35?style=for-the-badge" />
   <img src="https://img.shields.io/badge/Security-9_Layer_Pipeline-red?style=for-the-badge&logo=shield&logoColor=white" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" />
 </p>
@@ -14,12 +15,14 @@
   <img src="https://img.shields.io/badge/Agents-4_Live-brightgreen?style=flat-square" />
   <img src="https://img.shields.io/badge/Security_Checks-9_per_request-red?style=flat-square" />
   <img src="https://img.shields.io/badge/Input_Patterns-66_blocked-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/MCP_Vulns-5_Demonstrated-purple?style=flat-square" />
 </p>
 
 <p align="center">
   A <b>production-grade AI Agent Marketplace</b> built with FastAPI and the A2A (Agent-to-Agent) protocol.<br/>
   Users sign up, purchase AI agents with credits, and query them programmatically via scoped API keys —<br/>
-  with every request passing through a <b>9-step security pipeline</b>.
+  with every request passing through a <b>9-step security pipeline</b>.<br/>
+  Also includes a full <b>MCP server</b> for Claude Desktop integration and an <b>MCP vulnerability demo suite</b>.
 </p>
 
 ---
@@ -27,7 +30,7 @@
 ## 🏗️ Architecture
 
 ```
-Internet ──▶ Marketplace :8000  (public-facing)
+Internet ──▶ Marketplace :8000  (public-facing HTTP API + UI)
                 │
                 ├── /auth/signup, /auth/login      JWT authentication
                 ├── /agents                         Discovery + purchase
@@ -39,9 +42,16 @@ Internet ──▶ Marketplace :8000  (public-facing)
                 ├── FilmBot V2     :9002
                 ├── Melody Bot     :9003
                 └── Rock Agent     :9004
+
+Claude Desktop ──▶ MCP Server (stdio / SSE :8100)
+                │
+                ├── list_agents     Browse available agents (no auth)
+                ├── purchase_agent  Buy an agent with JWT token
+                ├── query_agent     Query via API key (full security pipeline)
+                └── get_credits     Check remaining credits
 ```
 
-All agent ports are **internal only**. Only port 8000 is public-facing. Agents communicate with each other via the A2A protocol with scoped tokens.
+All agent ports are **internal only**. Only port 8000 is public-facing. Agents communicate via the A2A protocol with scoped tokens.
 
 ---
 
@@ -58,9 +68,92 @@ Agents can **collaborate with each other** — a movie agent can call the music 
 
 ---
 
+## 🔌 MCP Server
+
+The marketplace exposes a full **Model Context Protocol (MCP) server** so tools like **Claude Desktop** can browse, purchase, and query agents directly — all through the same 9-step security pipeline as the HTTP API.
+
+### MCP Tools
+
+| Tool | Auth Required | Description |
+|------|--------------|-------------|
+| `list_agents` | None | Browse all available agents with skills and pricing |
+| `purchase_agent` | JWT token | Buy an agent and receive an API key |
+| `query_agent` | API key | Query an agent (full security pipeline applied) |
+| `get_credits` | API key | Check remaining credit balance |
+
+### Running the MCP Server
+
+```bash
+# stdio transport — for Claude Desktop
+python -m mcp_server.server
+
+# SSE transport — for remote MCP clients (default port 8100)
+python -m mcp_server.server --sse 8100
+```
+
+### Claude Desktop Configuration
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "agent-marketplace": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "/path/to/agent-marketplace"
+    }
+  }
+}
+```
+
+Once connected, Claude Desktop can list agents, purchase them, and query them directly in conversation.
+
+---
+
+## 🧪 MCP Vulnerability Demo Suite
+
+The `mcp_vulns/` directory demonstrates **5 real MCP-specific attacks** and how the marketplace's defenses block each one.
+
+### The 5 Vulnerabilities
+
+| # | Attack | Description |
+|---|--------|-------------|
+| 1 | **Supply-Chain Attack** | Malicious tool injected via a compromised MCP registry |
+| 2 | **Tool Poisoning** | Hidden instructions embedded in tool descriptions to hijack the LLM |
+| 3 | **Tool Shadowing** | A rogue tool overrides a legitimate one to intercept calls |
+| 4 | **Rug Pull Attack** | Tool behaviour changes silently after purchase/trust is established |
+| 5 | **Sandbox Escape / RAC** | Repeated Adversarial Clarification — probing for filesystem/shell access |
+
+### Running the Demos
+
+```bash
+# Run all 5 vulnerability demos
+python -m mcp_vulns.runner --all
+
+# Run a specific vulnerability
+python -m mcp_vulns.runner --vuln 2
+
+# Run multiple specific vulnerabilities
+python -m mcp_vulns.runner --vuln 1 3 5
+
+# Show only defense results (no attack output)
+python -m mcp_vulns.runner --all --defense-only
+```
+
+### MCP Defenses (`mcp_server/defenses.py`)
+
+- **Tool registry validation** — only known, registered tools are callable
+- **Tool description sanitization** — strips hidden instructions from tool metadata
+- **Definition monitor** — detects if tool definitions change between calls (rug pull detection)
+- **Sandbox** — static analysis + runtime sandboxing blocks filesystem/shell access attempts
+- **Tool manifest validation** — verifies tool signatures before execution
+
+---
+
 ## 🛡️ 9-Step Security Pipeline
 
-Every `/api/v1/chat` request passes through all 9 checks in order:
+Every `/api/v1/chat` request (and every `query_agent` MCP call) passes through all 9 checks in order:
 
 ```
 Request arrives
@@ -106,7 +199,7 @@ Request arrives
 **Rate Limiting** (3-tier sliding window)
 - Signup: 3 requests/min
 - Login: 5 requests/min
-- Chat: 10 requests/min per user
+- Chat / MCP queries: 10 requests/min per user
 
 **Input Sanitization**
 - **26 SQL injection patterns** blocked
@@ -256,6 +349,19 @@ agent-marketplace/
 │   ├── melody_server.py   # Melody Bot A2A server (port 9003)
 │   └── rock_server.py     # Rock Agent A2A server (port 9004)
 │
+├── mcp_server/            # MCP server for Claude Desktop / MCP clients
+│   ├── server.py          # FastMCP server — 4 tools (list, purchase, query, credits)
+│   ├── auth_bridge.py     # JWT + API key auth for MCP context
+│   └── defenses.py        # MCP-specific defenses (registry, sandbox, manifest check)
+│
+├── mcp_vulns/             # MCP vulnerability demo suite
+│   ├── runner.py          # CLI runner — run all 5 or specific demos
+│   ├── vuln1_supply_chain.py   # Supply-chain attack demo + defense
+│   ├── vuln2_tool_poisoning.py # Tool poisoning demo + defense
+│   ├── vuln3_tool_shadowing.py # Tool shadowing demo + defense
+│   ├── vuln4_rug_pull.py       # Rug pull attack demo + defense
+│   └── vuln5_sandbox_escape.py # Sandbox escape / RAC demo + defense
+│
 ├── filmbot_agent.py       # FilmBot core — tools, prompts, LangGraph agent
 ├── filmbot_v2/            # FilmBot V2 — SQL + vector + knowledge graph
 ├── rock.py                # Rock Agent core
@@ -279,6 +385,7 @@ agent-marketplace/
 | **Vector Search** | ChromaDB + Nomic embeddings |
 | **Knowledge Graph** | Neo4j (Cypher) |
 | **Agent Protocol** | A2A SDK (Agent-to-Agent) |
+| **MCP Server** | FastMCP (stdio + SSE transport) |
 | **Frontend** | Vanilla HTML/CSS/JS (dark theme, responsive) |
 
 ---
