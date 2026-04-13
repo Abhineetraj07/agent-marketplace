@@ -24,6 +24,9 @@ SERVICES = [
     {"name": "Rock Agent", "cmd": [sys.executable, "-m", "agents.rock_server"]},
 ]
 
+# Optional MCP server (add with --mcp flag)
+MCP_SERVICE = {"name": "MCP Server", "cmd": [sys.executable, "-m", "mcp_server.server", "--sse", "8100"]}
+
 processes: list[subprocess.Popen] = []
 
 
@@ -39,6 +42,7 @@ def start_all():
             cwd=CHATBOT_DIR,
             stdout=sys.stdout,
             stderr=sys.stderr,
+            start_new_session=True,
         )
         processes.append(proc)
         # Give marketplace a head start so agents can register
@@ -114,9 +118,15 @@ async def run_demo():
 def shutdown(signum=None, frame=None):
     print("\nShutting down all services...")
     for proc in processes:
-        proc.terminate()
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except Exception:
+            proc.kill()
     for proc in processes:
-        proc.wait(timeout=5)
+        try:
+            proc.wait(timeout=5)
+        except Exception:
+            pass
     print("All services stopped.")
     sys.exit(0)
 
@@ -126,6 +136,19 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, shutdown)
 
     start_all()
+
+    if "--mcp" in sys.argv:
+        print(f"\nStarting MCP Server (SSE on port 8100)...")
+        proc = subprocess.Popen(
+            MCP_SERVICE["cmd"],
+            cwd=CHATBOT_DIR,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            start_new_session=True,
+        )
+        processes.append(proc)
+        time.sleep(1)
+        print("  MCP Server:   http://localhost:8100 (SSE)")
 
     if "--demo" in sys.argv:
         time.sleep(3)

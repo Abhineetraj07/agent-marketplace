@@ -56,7 +56,7 @@ def make_agent_card(
     description: str,
     port: int,
     skills: list[AgentSkill],
-    host: str = "localhost",
+    host: str = "127.0.0.1",
 ) -> AgentCard:
     return AgentCard(
         name=name,
@@ -111,7 +111,7 @@ def make_a2a_app(
     port: int,
     invoke_fn: Callable,
     skills: list[AgentSkill],
-    host: str = "localhost",
+    host: str = "127.0.0.1",
 ) -> tuple[Starlette, AgentCard]:
     card = make_agent_card(agent_id, name, description, port, skills, host)
 
@@ -143,7 +143,7 @@ def run_agent_server(
     port: int,
     invoke_fn: Callable,
     skills: list[AgentSkill],
-    host: str = "localhost",
+    host: str = "127.0.0.1",
 ):
     app, card = make_a2a_app(agent_id, name, description, port, invoke_fn, skills, host)
 

@@ -17,6 +17,17 @@ __pycache__/
 pentest.py
 pentest_v2.py
 
+# Internal docs
+PRD.md
+EXPERIMENT_REPORT.md
+
+# Data/media files (local only)
+*.json
+*.csv
+*.png
+*.jpg
+*.number
+
 # Logs
 *.log
 a2a_token_log.json

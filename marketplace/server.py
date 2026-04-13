@@ -37,6 +37,14 @@ from marketplace.users import (
 )
 from marketplace.sanitizer import sanitize_input, sanitize_output
 from marketplace.rate_limiter import rate_limiter, auth_rate_limiter, signup_rate_limiter
+from mcp_server.defenses import (
+    validate_tool_manifest,
+    sanitize_tool_description,
+    tool_registry,
+    ToolShadowingError,
+    definition_monitor,
+    sandbox,
+)
 
 MARKETPLACE_PORT = int(os.environ.get("MARKETPLACE_PORT", 8000))
 
@@ -469,6 +477,37 @@ def api_agent_pricing():
 def api_register_agent(req: RegisterRequest, request: Request):
     if not check_secret(request):
         raise HTTPException(status_code=403, detail="Invalid marketplace secret")
+
+    # MCP Defense: Sanitize tool descriptions (Vuln 2 — Tool Poisoning)
+    card = req.card_json if isinstance(req.card_json, dict) else {}
+    for skill in card.get("skills", []):
+        desc_check = sanitize_tool_description(skill.get("description", ""))
+        if not desc_check["safe"]:
+            print(f"  [DEFENSE] Blocked agent '{req.agent_id}': poisoned tool description — {desc_check['flags']}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Tool description blocked: {', '.join(desc_check['flags'])}",
+            )
+
+    # MCP Defense: Check tool name collisions (Vuln 3 — Tool Shadowing)
+    for skill in card.get("skills", []):
+        try:
+            tool_registry.register_tool(
+                tool_name=skill.get("name", ""),
+                server_name=req.agent_id,
+                description=skill.get("description", ""),
+            )
+        except ToolShadowingError as e:
+            print(f"  [DEFENSE] Blocked agent '{req.agent_id}': tool shadowing — {e}")
+            raise HTTPException(status_code=409, detail=str(e))
+
+    # MCP Defense: Snapshot tool definitions (Vuln 4 — Rug Pull)
+    tools_for_snapshot = [
+        {"name": s.get("name", ""), "description": s.get("description", ""), "parameters": s.get("parameters", {})}
+        for s in card.get("skills", [])
+    ]
+    if tools_for_snapshot:
+        definition_monitor.snapshot(tools_for_snapshot)
 
     agent = register_agent(
         agent_id=req.agent_id,
