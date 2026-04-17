@@ -150,7 +150,7 @@ def run_agent_server(
     async def on_startup():
         await register_with_marketplace(agent_id, card)
 
-    app.add_event_handler("startup", on_startup)
+    app.router.on_startup.append(on_startup)
 
     print(f"{name} A2A Server starting on http://{host}:{port}")
     print(f"Agent Card: http://{host}:{port}/.well-known/agent-card.json")
