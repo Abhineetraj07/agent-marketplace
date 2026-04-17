@@ -25,7 +25,7 @@ from marketplace.db import (
 )
 from marketplace.models import (
     RegisterRequest, TokenRequest, TokenResponse, TokenValidation, AgentInfo,
-    SignupRequest, LoginRequest, UserProfile, AddCreditsRequest, ChatMessage,
+    SignupRequest, LoginRequest, UserProfile, AddCreditsRequest, ChatMessage, VerifyEmailRequest,
 )
 from marketplace.users import (
     create_user, authenticate_user, get_user, get_user_by_username,
@@ -33,10 +33,12 @@ from marketplace.users import (
     deduct_credits, add_credits,
     purchase_agent, get_user_agents,
     validate_api_key, revoke_api_key, get_user_all_keys,
+    store_otp, verify_otp,
     AGENT_PURCHASE_PRICE, AGENT_QUERY_COST,
 )
 from marketplace.sanitizer import sanitize_input, sanitize_output
 from marketplace.rate_limiter import rate_limiter, auth_rate_limiter, signup_rate_limiter, ip_signup_tracker
+from marketplace.email_service import generate_otp, send_otp_email
 from mcp_server.defenses import (
     validate_tool_manifest,
     sanitize_tool_description,
@@ -173,13 +175,35 @@ def api_signup(req: SignupRequest, request: Request):
         raise HTTPException(status_code=400, detail="Username must be alphanumeric (a-z, 0-9, _, -)")
     if len(req.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if "@" not in req.email or "." not in req.email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Invalid email address")
 
-    user = create_user(req.username, req.password)
+    user = create_user(req.username, req.password, req.email)
     if not user:
         raise HTTPException(status_code=409, detail="Username already exists")
 
+    # Send OTP
+    otp = generate_otp()
+    store_otp(user["user_id"], otp)
+    send_otp_email(req.email, req.username, otp)
+
+    return {
+        "message": "Account created. Check your email for a 6-digit verification code.",
+        "username": user["username"],
+        "verified": False,
+    }
+
+
+@app.post("/auth/verify-email")
+def api_verify_email(req: VerifyEmailRequest):
+    success = verify_otp(req.username, req.otp)
+    if not success:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+
+    user = get_user_by_username(req.username)
     token = create_jwt(user["user_id"], user["username"], user["role"], user.get("token_version", 0))
     return {
+        "message": "Email verified successfully!",
         "token": token,
         "user": {
             "user_id": user["user_id"],
@@ -202,10 +226,12 @@ def api_login(req: LoginRequest, request: Request):
             headers={"Retry-After": str(rate_check["retry_after"])},
         )
 
-    # Check if user exists and is locked
+    # Check if user exists, is locked, or is unverified
     existing = get_user_by_username(req.username)
     if existing and existing["locked"]:
         raise HTTPException(status_code=403, detail="Account is locked due to too many failed login attempts")
+    if existing and not existing.get("verified", 1):
+        raise HTTPException(status_code=403, detail="Please verify your email before logging in")
 
     user = authenticate_user(req.username, req.password)
     if not user:

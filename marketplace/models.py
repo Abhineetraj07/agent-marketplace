@@ -43,6 +43,12 @@ class AgentInfo(BaseModel):
 class SignupRequest(BaseModel):
     username: str
     password: str
+    email: str
+
+
+class VerifyEmailRequest(BaseModel):
+    username: str
+    otp: str
 
 
 class LoginRequest(BaseModel):

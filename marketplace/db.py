@@ -50,7 +50,16 @@ def init_db():
             locked        INTEGER DEFAULT 0,
             failed_logins INTEGER DEFAULT 0,
             token_version INTEGER DEFAULT 0,
+            email         TEXT,
+            verified      INTEGER DEFAULT 0,
             created_at    TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS email_verifications (
+            user_id    TEXT PRIMARY KEY,
+            otp        TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
         );
 
         CREATE TABLE IF NOT EXISTS user_agents (

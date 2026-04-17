@@ -39,16 +39,16 @@ JWT_EXPIRY_MINUTES = 60
 
 # ── User CRUD ────────────────────────────────────────────────
 
-def create_user(username: str, password: str) -> dict | None:
-    """Create a new user with hashed password. Returns user dict or None if exists."""
+def create_user(username: str, password: str, email: str = "") -> dict | None:
+    """Create a new unverified user. Returns user dict or None if exists."""
     user_id = uuid.uuid4().hex
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     conn = get_connection()
     try:
         conn.execute(
-            "INSERT INTO users (user_id, username, password_hash) VALUES (?, ?, ?)",
-            (user_id, username, password_hash),
+            "INSERT INTO users (user_id, username, password_hash, email, verified) VALUES (?, ?, ?, ?, 0)",
+            (user_id, username, password_hash, email),
         )
         conn.commit()
         row = conn.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
@@ -57,6 +57,55 @@ def create_user(username: str, password: str) -> dict | None:
         return None
     finally:
         conn.close()
+
+
+def store_otp(user_id: str, otp: str):
+    """Store OTP for email verification (expires in 10 minutes)."""
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    conn = get_connection()
+    conn.execute(
+        "INSERT OR REPLACE INTO email_verifications (user_id, otp, expires_at) VALUES (?, ?, ?)",
+        (user_id, otp, expires_at),
+    )
+    conn.commit()
+    conn.close()
+
+
+def verify_otp(username: str, otp: str) -> bool:
+    """Verify OTP and mark user as verified. Returns True on success."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.close()
+        return False
+
+    user = dict(row)
+    otp_row = conn.execute(
+        "SELECT * FROM email_verifications WHERE user_id = ?", (user["user_id"],)
+    ).fetchone()
+
+    if not otp_row:
+        conn.close()
+        return False
+
+    expires_at = datetime.fromisoformat(otp_row["expires_at"])
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if datetime.now(timezone.utc) > expires_at:
+        conn.close()
+        return False
+
+    if otp_row["otp"] != otp:
+        conn.close()
+        return False
+
+    # Mark verified and clean up OTP
+    conn.execute("UPDATE users SET verified = 1 WHERE user_id = ?", (user["user_id"],))
+    conn.execute("DELETE FROM email_verifications WHERE user_id = ?", (user["user_id"],))
+    conn.commit()
+    conn.close()
+    return True
 
 
 def authenticate_user(username: str, password: str) -> dict | None:
@@ -97,7 +146,7 @@ def increment_failed_logins(user_id: str):
         (user_id,),
     )
     conn.execute(
-        "UPDATE users SET locked = 1 WHERE user_id = ? AND failed_logins >= 5",
+        "UPDATE users SET locked = 1 WHERE user_id = ? AND failed_logins >= 2",
         (user_id,),
     )
     conn.commit()
