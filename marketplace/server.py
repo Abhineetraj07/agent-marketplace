@@ -36,7 +36,7 @@ from marketplace.users import (
     AGENT_PURCHASE_PRICE, AGENT_QUERY_COST,
 )
 from marketplace.sanitizer import sanitize_input, sanitize_output
-from marketplace.rate_limiter import rate_limiter, auth_rate_limiter, signup_rate_limiter
+from marketplace.rate_limiter import rate_limiter, auth_rate_limiter, signup_rate_limiter, ip_signup_tracker
 from mcp_server.defenses import (
     validate_tool_manifest,
     sanitize_tool_description,
@@ -155,6 +155,13 @@ def api_signup(req: SignupRequest, request: Request):
             status_code=429,
             detail=f"Too many signups. Try again in {rate_check['retry_after']} seconds",
             headers={"Retry-After": str(rate_check["retry_after"])},
+        )
+
+    # Global IP cap: max 5 accounts per IP ever (blocks VPN-cycling credit farmers)
+    if not ip_signup_tracker.check_and_record(ip):
+        raise HTTPException(
+            status_code=403,
+            detail="Account creation limit reached for this IP address",
         )
 
     # Username validation

@@ -53,5 +53,25 @@ rate_limiter = RateLimiter(max_requests=10, window_seconds=60)
 # Auth endpoints: 5 requests/min per IP (blocks brute force + credit farming)
 auth_rate_limiter = RateLimiter(max_requests=5, window_seconds=60)
 
-# Signup: 3 accounts/min per IP (blocks credit farming)
-signup_rate_limiter = RateLimiter(max_requests=3, window_seconds=60)
+# Signup: 3 accounts/hour per IP (blocks credit farming via repeated signups)
+signup_rate_limiter = RateLimiter(max_requests=3, window_seconds=3600)
+
+
+# Global IP signup tracker — max 5 accounts per IP ever (persists in memory)
+class IPSignupTracker:
+    def __init__(self, max_per_ip: int = 5):
+        self.max_per_ip = max_per_ip
+        self._counts: dict[str, int] = {}
+        self._lock = threading.Lock()
+
+    def check_and_record(self, ip: str) -> bool:
+        """Returns True if signup is allowed, False if IP has hit the cap."""
+        with self._lock:
+            count = self._counts.get(ip, 0)
+            if count >= self.max_per_ip:
+                return False
+            self._counts[ip] = count + 1
+            return True
+
+
+ip_signup_tracker = IPSignupTracker(max_per_ip=5)
