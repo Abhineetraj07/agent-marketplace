@@ -428,12 +428,25 @@
             <label>Username</label>
             <input type="text" id="auth-username" required minlength="3" autocomplete="username">
           </div>
+          <div class="form-group" id="email-group" style="display:none">
+            <label>Email</label>
+            <input type="email" id="auth-email" autocomplete="email">
+          </div>
           <div class="form-group">
             <label>Password</label>
             <input type="password" id="auth-password" required minlength="6" autocomplete="current-password">
           </div>
           <button class="btn btn-primary auth-btn" type="submit" id="auth-submit">Login</button>
           <div class="auth-error" id="auth-error"></div>
+        </form>
+        <form id="otp-form" onsubmit="handleVerifyOtp(event)" style="display:none">
+          <p style="color:#aaa;margin-bottom:12px;">Enter the 6-digit code sent to your email.</p>
+          <div class="form-group">
+            <label>Verification Code</label>
+            <input type="text" id="otp-input" maxlength="6" pattern="\d{6}" placeholder="123456" required>
+          </div>
+          <button class="btn btn-primary auth-btn" type="submit">Verify Email</button>
+          <div class="auth-error" id="otp-error"></div>
         </form>
         <div class="auth-info">100 free credits on signup</div>
       </div>
@@ -516,26 +529,33 @@
 
     if (jwt && currentUser) showApp();
 
+    let pendingUsername = '';
+
     function switchTab(mode) {
       authMode = mode;
       document.getElementById('tab-login').classList.toggle('active', mode === 'login');
       document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
       document.getElementById('auth-submit').textContent = mode === 'login' ? 'Login' : 'Sign Up';
       document.getElementById('auth-error').textContent = '';
+      document.getElementById('email-group').style.display = mode === 'signup' ? 'block' : 'none';
+      document.getElementById('auth-email').required = mode === 'signup';
     }
 
     async function handleAuth(e) {
       e.preventDefault();
       const username = document.getElementById('auth-username').value.trim();
       const password = document.getElementById('auth-password').value;
+      const email = document.getElementById('auth-email').value.trim();
       const errorEl = document.getElementById('auth-error');
       errorEl.textContent = '';
+
+      const body = authMode === 'signup' ? { username, password, email } : { username, password };
 
       try {
         const res = await fetch(authMode === 'login' ? '/auth/login' : '/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
 
@@ -544,6 +564,41 @@
           return;
         }
 
+        if (authMode === 'signup' && data.verified === false) {
+          // Show OTP form
+          pendingUsername = username;
+          document.getElementById('auth-form').style.display = 'none';
+          document.getElementById('otp-form').style.display = 'block';
+          document.querySelector('.auth-tabs').style.display = 'none';
+          return;
+        }
+
+        jwt = data.token;
+        currentUser = data.user;
+        sessionStorage.setItem('jwt', jwt);
+        sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showApp();
+      } catch {
+        errorEl.textContent = 'Connection error';
+      }
+    }
+
+    async function handleVerifyOtp(e) {
+      e.preventDefault();
+      const otp = document.getElementById('otp-input').value.trim();
+      const errorEl = document.getElementById('otp-error');
+      errorEl.textContent = '';
+      try {
+        const res = await fetch('/auth/verify-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: pendingUsername, otp }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errorEl.textContent = data.detail || 'Invalid code';
+          return;
+        }
         jwt = data.token;
         currentUser = data.user;
         sessionStorage.setItem('jwt', jwt);
@@ -561,8 +616,12 @@
       sessionStorage.clear();
       document.getElementById('app-screen').classList.add('hidden');
       document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('auth-form').style.display = 'block';
+      document.getElementById('otp-form').style.display = 'none';
+      document.querySelector('.auth-tabs').style.display = 'flex';
       document.getElementById('auth-username').value = '';
       document.getElementById('auth-password').value = '';
+      document.getElementById('auth-email').value = '';
     }
 
     async function showApp() {
