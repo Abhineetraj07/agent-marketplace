@@ -147,11 +147,21 @@ def run_agent_server(
 ):
     app, card = make_a2a_app(agent_id, name, description, port, invoke_fn, skills, host)
 
-    async def on_startup():
-        await register_with_marketplace(agent_id, card)
+    inner_app = app
 
-    app.router.on_startup.append(on_startup)
+    async def lifespan_app(scope, receive, send):
+        if scope["type"] == "lifespan":
+            while True:
+                message = await receive()
+                if message["type"] == "lifespan.startup":
+                    await register_with_marketplace(agent_id, card)
+                    await send({"type": "lifespan.startup.complete"})
+                elif message["type"] == "lifespan.shutdown":
+                    await send({"type": "lifespan.shutdown.complete"})
+                    return
+        else:
+            await inner_app(scope, receive, send)
 
     print(f"{name} A2A Server starting on http://{host}:{port}")
     print(f"Agent Card: http://{host}:{port}/.well-known/agent-card.json")
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(lifespan_app, host=host, port=port)
