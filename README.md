@@ -12,7 +12,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/github/last-commit/Abhineetraj07/agent-marketplace?style=flat-square&color=blue" />
-  <img src="https://img.shields.io/badge/Agents-4_Live-brightgreen?style=flat-square" />
+  <img src="https://img.shields.io/badge/Agents-3_Live-brightgreen?style=flat-square" />
   <img src="https://img.shields.io/badge/Security_Checks-9_per_request-red?style=flat-square" />
   <img src="https://img.shields.io/badge/Input_Patterns-66_blocked-orange?style=flat-square" />
   <img src="https://img.shields.io/badge/MCP_Vulns-5_Demonstrated-purple?style=flat-square" />
@@ -41,10 +41,10 @@ Internet ──▶ Marketplace :8000  (public-facing HTTP API + UI)
                 └── /me                Profile, keys, usage
                 │
                 │   (internal-only — not exposed to internet)
-                ├── FilmBot        :9001
-                ├── FilmBot V2     :9002
-                ├── Melody Bot     :9003
-                └── Rock Agent     :9004
+                ├── FilmBot        :9001  ✅ live
+                ├── Melody Bot     :9003  ✅ live
+                ├── Rock Agent     :9004  ✅ live
+                └── FilmBot V2     :9002  🧪 experimental (not on website)
 
 Claude Desktop ──▶ MCP Server (stdio / SSE :8100)
                 │
@@ -60,12 +60,21 @@ All agent ports are **internal only**. Only port 8000 is public-facing.
 
 ## 🤖 Available Agents
 
+### ✅ Live on Website (3 agents)
+
 | Agent | Port | Database | Description | Purchase | Per Query |
 |-------|------|----------|-------------|----------|-----------|
 | **FilmBot** | 9001 | IMDB (SQLite) | Movie expert — ratings, actors, directors, box office | 10 credits | 1 credit |
-| **FilmBot V2** | 9002 | IMDB + ChromaDB + Neo4j | Advanced movie AI — SQL + vector search + knowledge graph | 30 credits | 3 credits |
 | **Melody Bot** | 9003 | Chinook (SQLite) | Music store assistant — artists, albums, tracks, playlists | 10 credits | 1 credit |
 | **Rock Agent** | 9004 | IMDB (SQLite) | Deep movie analyst with step-by-step SQL reasoning | 10 credits | 1 credit |
+
+### 🧪 Experimental (not deployed on website)
+
+| Agent | Port | Database | Description | Purchase | Per Query |
+|-------|------|----------|-------------|----------|-----------|
+| **FilmBot V2** | 9002 | IMDB + ChromaDB + Neo4j | Advanced movie AI — SQL + vector search + knowledge graph. Requires Neo4j. | 30 credits | 3 credits |
+
+> FilmBot V2 is fully implemented and runnable locally but is **not active on the live website** due to its Neo4j dependency. To use it, set up Neo4j locally and run `python run_marketplace.py` — it will be available on port 9002.
 
 Agents can **collaborate with each other** — a movie agent can call the music agent and vice versa, all routed through the marketplace with credit accounting.
 
@@ -268,9 +277,10 @@ pip install -r requirements.txt
 python run_marketplace.py
 ```
 
-Starts all 5 services:
+Starts all services:
 - Marketplace UI + API → `http://localhost:8000`
-- FilmBot → `:9001` · FilmBot V2 → `:9002` · Melody Bot → `:9003` · Rock Agent → `:9004`
+- FilmBot → `:9001` · Melody Bot → `:9003` · Rock Agent → `:9004`
+- FilmBot V2 → `:9002` *(experimental — starts locally but not on live website)*
 
 ---
 
@@ -363,10 +373,10 @@ agent-marketplace/
 ├── agents/
 │   ├── base_server.py        # Generic A2A agent server builder
 │   ├── enhanced_agent.py     # LangGraph agent + marketplace collaboration tools
-│   ├── filmbot_server.py     # FilmBot A2A server (port 9001)
-│   ├── filmbot_v2_server.py  # FilmBot V2 A2A server (port 9002)
-│   ├── melody_server.py      # Melody Bot A2A server (port 9003)
-│   └── rock_server.py        # Rock Agent A2A server (port 9004)
+│   ├── filmbot_server.py     # FilmBot A2A server (port 9001) ✅ live
+│   ├── melody_server.py      # Melody Bot A2A server (port 9003) ✅ live
+│   ├── rock_server.py        # Rock Agent A2A server (port 9004) ✅ live
+│   └── filmbot_v2_server.py  # FilmBot V2 A2A server (port 9002) 🧪 experimental
 │
 ├── mcp_server/            # MCP server for Claude Desktop / MCP clients
 │   ├── server.py          # FastMCP server — 4 tools
@@ -374,7 +384,7 @@ agent-marketplace/
 │   └── defenses.py        # MCP-specific defenses (registry, sandbox, manifest)
 │
 ├── mcp_vulns/             # MCP vulnerability demo suite
-│   ├── runner.py                # CLI runner
+│   ├── runner.py
 │   ├── vuln1_supply_chain.py
 │   ├── vuln2_tool_poisoning.py
 │   ├── vuln3_tool_shadowing.py
@@ -385,7 +395,7 @@ agent-marketplace/
 ├── filmbot_v2/            # FilmBot V2 — SQL + vector + knowledge graph
 ├── rock.py                # Rock Agent core
 ├── rock2.py               # Melody Bot core (Chinook DB)
-├── run_marketplace.py     # Launch all 5 services
+├── run_marketplace.py     # Launch all services
 └── requirements.txt
 ```
 
@@ -398,8 +408,8 @@ agent-marketplace/
 | **Backend** | FastAPI · Uvicorn · SQLite |
 | **Authentication** | PyJWT · bcrypt · Email OTP (Gmail SMTP) |
 | **AI Agents** | LangChain · LangGraph · Ollama (`qwen2.5:7b`) |
-| **Vector Search** | ChromaDB + Nomic embeddings |
-| **Knowledge Graph** | Neo4j (Cypher) |
+| **Vector Search** | ChromaDB + Nomic embeddings (FilmBot V2) |
+| **Knowledge Graph** | Neo4j (Cypher) (FilmBot V2) |
 | **Agent Protocol** | A2A SDK (Agent-to-Agent) |
 | **MCP Server** | FastMCP (stdio + SSE transport) |
 | **Frontend** | Vanilla HTML/CSS/JS (dark theme, responsive) |
